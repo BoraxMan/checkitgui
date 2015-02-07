@@ -1,1 +1,7 @@
-<RCC/>
+<RCC>
+    <qresource prefix="/">
+        <file>graphics/amberlite.png</file>
+        <file>graphics/greenlite.png</file>
+        <file>graphics/redlite.png</file>
+    </qresource>
+</RCC>

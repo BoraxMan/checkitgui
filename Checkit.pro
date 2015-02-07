@@ -10,11 +10,25 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Checkit
 TEMPLATE = app
+QMAKE_CXXFLAGS += -std=c++0x
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+    checkit.c \
+    vfatattr.c \
+    ntfsattr.c \
+    crc64.c \
+    mainwindow.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += \
+    crc64.h \
+    checkit.h \
+    mainwindow.h \
+    fsmagic.h
 
-FORMS    += mainwindow.ui
+FORMS    += \
+    mainwindow.ui \
+    about.ui
+
+RESOURCES += \
+    graphics.qrc
