@@ -1,7 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_about.h"
-
+#include "ui_manual.h"
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -9,30 +10,26 @@ MainWindow::MainWindow(QWidget *parent) :
 {
   ui->setupUi(this);
 
-
-  //workerthread.moveToThread();
   connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
   connect(ui->actionQuit_2, SIGNAL(triggered()), this, SLOT(close()));
   connect(ui->actionAdd_Directory_2, SIGNAL(triggered()), this, SLOT(addDirectory()));
   connect(ui->actionAdd_File_2, SIGNAL(triggered()), this, SLOT(addFile()));
   connect(ui->actionCheck, SIGNAL(triggered()), this, SLOT(check()));
   connect(ui->actionStore, SIGNAL(triggered()), this, SLOT(store()));
+  connect(ui->actionManual, SIGNAL(triggered()), this, SLOT(help()));
+  connect(ui->actionClear, SIGNAL(triggered()), this, SLOT(clearList()));
   ui->listWidget->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(ui->listWidget, SIGNAL(customContextMenuRequested(QPoint)), this,
           SLOT(customContextMenuRequested(QPoint)));
+
+  this->setAttribute(Qt::WA_QuitOnClose);
+
 
 }
 
 MainWindow::~MainWindow()
 {
   delete ui;
-}
-
-void MainWindow::addCheckitWidget(checkitFileData &data)
-{
-
-  ui->listWidget->addItem(data.file);
-
 }
 
 void MainWindow::addFile()
@@ -47,17 +44,14 @@ void MainWindow::addFile()
       files = fileDialog.selectedFiles();
     }
 
-  for (auto x : files)
+  for (auto &x : files)
     {
       checkitFileData entry;
       entry.file = x;
       entry.status = Unchecked;
-      entry.directory = false;
-      addCheckitWidget(entry);
+      ui->listWidget->addItem(entry.file);
       processList.append(entry);
-
     }
-  qDebug() << "Added file";
 }
 
 void MainWindow::addDirectory()
@@ -74,63 +68,57 @@ void MainWindow::addDirectory()
       files = fileDialog.selectedFiles();
     }
 
-  for (auto x : files)
+  for (auto &x : files)
     {
       QDirIterator dirIterator(x, QDirIterator::Subdirectories);
       while (dirIterator.hasNext())
         {
           checkitFileData entry;
-
           QFileInfo info;
+          dirIterator.next();
           entry.file = dirIterator.filePath();
           info = dirIterator.fileInfo();
+
           if (info.isFile() && (info.isHidden() == false))
             {
-
               entry.status = Unchecked;
-              entry.directory = false;
-
-              addCheckitWidget(entry);
-              //   qDebug() << entry.file;
+              ui->listWidget->addItem(entry.file);
               processList.append(entry);
-
             }
-          dirIterator.next();
+
         }
-
-
     }
-
 }
 
 void MainWindow::check()
 {
-  int count = 0;
+
   if (processList.size() == 0)
     {
       ui->statusbar->showMessage(tr("No files to check."));
       return;
     }
 
-  int filesCompleted = 0, failed = 0;
+  int count = 0, failed = 0, nocrc = 0;
   QStringList failedFileList;
-  checkitFileData d;
   QString text;
+
   ui->progressBar->setMinimum(0);
   ui->progressBar->setMaximum(processList.size());
 
-  //  d.statusIcon->setPixmap(amberlite);
-  for (auto &i : processList)
+  for (const auto &i : processList)
     {
       t_crc64 result = getCRC(i.file.toStdString().c_str());
 
       if (!result) {
-
-          ui->listWidget->item(count)->setForeground(Qt::yellow);
+          ui->listWidget->item(count)->setForeground(Qt::darkYellow);
+          text = processList[count].file;
+          text += "  [NO CRC]";
+          ++nocrc;
+          ui->listWidget->item(count)->setText(text);
         } else { // Only bother calculating CRC if there is a value to
           // compare against.
           t_crc64 fileCRC = FileCRC64(i.file.toStdString().c_str());
-          //qDebug() << result << fileCRC;
 
           if (result == fileCRC) {
 
@@ -147,50 +135,68 @@ void MainWindow::check()
               failedFileList << i.file;
             }
         }
-      ++filesCompleted;
 
-      ui->progressBar->setValue(filesCompleted);
-      ui->listWidget->repaint();
       ++count;
+      ui->progressBar->setValue(count);
+
+      QApplication::processEvents();
+
     }
 
+  QString statusMessage;
   if (failed) {
-      ui->statusbar->showMessage(tr("Some files have failed."));
+      statusMessage += QString::number(failed) + " file(s) failed. ";
+    } else if (!nocrc) {
+      statusMessage += "All files have passed. ";
     } else {
-      ui->statusbar->showMessage(tr("All files passed."));
+      statusMessage += QString::number(count - failed - nocrc) + " file(s) passed. ";
     }
+  if (nocrc) {
+      statusMessage += QString::number(nocrc) + " file(s) with no CRC's stored. ";
+    }
+  ui->statusbar->showMessage(statusMessage);
 }
 
 void MainWindow::clearList()
 {
   processList.clear();
   ui->listWidget->clear();
+  ui->progressBar->setValue(0);
 }
 
 void MainWindow::store()
 {
-  QString text;
 
-  int count = 0;
-  checkitFileData d;
   if (processList.size() == 0)
     {
       ui->statusbar->showMessage(tr("No files to store CRC."));
       return;
     }
-  int flags = 0;
+
+  QString text;
+  int flags = 0, count = 0;
+
+  ui->statusbar->showMessage("");
+  checkitFileData d;
+
   if (ui->overwriteCheckbox->isChecked())
     {
-      qDebug() << "Overwrite";
       flags |= OVERWRITE;
     }
 
-  for (auto &i : processList)
+  for (const auto &i : processList)
     {
-      t_crc64 result = putCRC(i.file.toStdString().c_str(), flags);
-      //qDebug() << result;
-      if (!result) {
+      char checkitOpts = getCheckitOptions(i.file.toStdString().c_str());
 
+      if (checkitOpts & STATIC) {
+          flags =  flags  & ~OVERWRITE; // disallow overwrite in this case.
+        } else if (checkitOpts & UPDATEABLE) {
+          flags |= OVERWRITE;
+        } // This will overwrite the checkbox in the GUI.
+
+      t_crc64 result = putCRC(i.file.toStdString().c_str(), flags);
+
+      if (!result) {
           ui->listWidget->item(count)->setForeground(Qt::green);
           text = processList[count].file;
           text += "  [SAVED]";
@@ -198,7 +204,7 @@ void MainWindow::store()
         } else {
           ui->listWidget->item(count)->setForeground(Qt::red);
           text = processList[count].file;
-          text += "  [NOT SAVED]";
+          text += "  [NOT SAVED] : " + QString(errorMessage(result));
           ui->listWidget->item(count)->setText(text);
         }
       ++count;
@@ -207,39 +213,112 @@ void MainWindow::store()
 
 void MainWindow::about()
 {
-  QDialog *dialog = new QDialog(this);
+  //QDialog *dialog = new QDialog();
+  QDialog dialog;
   Ui::Dialog aboutDialog;
-  aboutDialog.setupUi(dialog);
-  dialog->exec();
-  delete dialog;
+  aboutDialog.setupUi(&dialog);
+  aboutDialog.versionLabel->setText(XVERSION);
+  dialog.exec();
+  //delete dialog;
+}
 
+void MainWindow::help()
+{
+  QDialog dialog;
+  Ui::manualDialog mandialog;
+  mandialog.setupUi(&dialog);
+  dialog.exec();
+}
+
+void MainWindow::quit()
+{
+  QApplication::quit();
 }
 
 void MainWindow::customContextMenuRequested(const QPoint &pos)
 {
   int flags = 0;
+  int error;
   if (ui->overwriteCheckbox->isChecked())
     {
-      qDebug() << "Overwrite";
       flags |= OVERWRITE;
     }
 
+  QVector<int> selectedListIndex;
+
   QPoint position = ui->listWidget->mapToGlobal(pos);
-  QModelIndex index = ui->listWidget->indexAt(pos);
-  QMenu *menu = new QMenu(this);
-  QString file;
+  QScopedPointer<QMenu> menu(new QMenu(this));
 
-  menu->addAction(new QAction("Export CRC",this));
-  menu->addAction(new QAction("Import CRC",this));
-  menu->addAction(new QAction("Remove CRC",this));
-  auto x = menu->exec(position);
+  QAction *exportAction = new QAction("Export CRC", menu.data());
+  QAction *importAction = new QAction("Import CRC", menu.data());
+  QAction *removeAction = new QAction("Remove CRC", menu.data());
+  QAction *allowUpdateAction = new QAction("Allow CRC Updates", menu.data());
+  allowUpdateAction->setCheckable(true);
 
-  if (x->text() == "Export CRC") {
-     exportCRC(processList[ui->listWidget->currentRow()].file.toStdString().c_str(), flags);
-    } else if (x->text() == "Import CRC") {
-       importCRC(processList[ui->listWidget->currentRow()].file.toStdString().c_str(), flags);
-    } else if (x->text() == "Remove CRC") {
-       removeCRC(processList[ui->listWidget->currentRow()].file.toStdString().c_str());
+  menu->addAction(exportAction);
+  menu->addAction(importAction);
+  menu->addAction(removeAction);
+  menu->addAction(allowUpdateAction);
+
+  QList<QListWidgetItem*> selectedItems = ui->listWidget->selectedItems();
+
+  for (auto &i : selectedItems)
+    { // Build list of row numbers selected.
+      selectedListIndex.push_back(ui->listWidget->row(i));
     }
 
+  auto checkitFlags = getCheckitOptions(processList[ui->listWidget->currentRow()].file.toStdString().c_str());
+  if (checkitFlags == UPDATEABLE) {
+      allowUpdateAction->setChecked(true);
+    }
+
+  auto x = menu->exec(position);
+
+  if (x == exportAction) {
+      for (auto i : selectedListIndex)
+        {
+          error = exportCRC(processList[i].file.toStdString().c_str(), flags);
+          if (error) {
+              ui->statusbar->showMessage(tr("Could not export CRC for ") + processList[ui->listWidget->currentRow()].file
+                  + " : " + errorMessage(error));
+            }
+        }
+    } else if (x == importAction) {
+      for (auto i : selectedListIndex)
+        {
+          error = importCRC(processList[i].file.toStdString().c_str(), flags);
+          if (error) {
+              ui->statusbar->showMessage(tr("Could not import CRC for ") + processList[ui->listWidget->currentRow()].file
+                  + " : " + errorMessage(error));
+            }
+        }
+    } else if (x == removeAction) {
+      for (auto i : selectedListIndex)
+        {
+          error = removeCRC(processList[i].file.toStdString().c_str());
+          if (error) {
+              ui->statusbar->showMessage(tr("Could not remove CRC for ") + processList[ui->listWidget->currentRow()].file
+                  + " : " + errorMessage(error));
+            }
+        }
+    } else if (x == allowUpdateAction) {
+      allowUpdateAction->toggle();
+
+      if (checkitFlags == UPDATEABLE)
+        {
+          checkitFlags = STATIC;
+        } else { checkitFlags = UPDATEABLE; }
+
+      for (auto i : selectedListIndex)
+        {
+
+          error = setCheckitOptions(processList[i].file.toStdString().c_str(), checkitFlags);
+
+          if (error) {
+              ui->statusbar->showMessage(tr("Could not set checkit attributefor ") + processList[ui->listWidget->currentRow()].file
+                  + " : " + errorMessage(error));
+            }
+        }
+    }
 }
+

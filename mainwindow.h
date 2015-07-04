@@ -7,11 +7,16 @@
 #include <QDebug>
 #include <QPixmap>
 #include <QDirIterator>
+#include <QTime>
 #include <QListWidgetItem>
+#include <QScopedPointer>
 
 extern "C" {
 #include "checkit.h"
+#include "checkit_attr.h"
 }
+
+#define XVERSION "0.1.0"
 
 enum checkitstatus {
   OK,
@@ -21,6 +26,11 @@ enum checkitstatus {
   Unchecked
 } typedef checkitStatus;
 
+/*
+enum function {
+  getcrc,
+  storecrc
+} typedef Function;*/
 
 
 namespace Ui {
@@ -30,9 +40,9 @@ namespace Ui {
 struct checkitFileData {
   QString file;
   checkitStatus status;
-  bool directory;
-
 };
+
+
 
 class MainWindow : public QMainWindow
 {
@@ -46,10 +56,7 @@ private:
   Ui::MainWindow *ui;
   QVector<checkitFileData> processList;
   QStringList fileList;
-
   int rows;
-  void addCheckitWidget(checkitFileData &data);
-
 
 private slots:
   void addFile();
@@ -58,6 +65,8 @@ private slots:
   void clearList();
   void store();
   void about();
+  void help();
+  void quit();
   void customContextMenuRequested ( const QPoint & pos );
 
 

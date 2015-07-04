@@ -1,5 +1,5 @@
-/*  CHECKIT
-    A file checksummer and integrity tester
+/*  CHECKIT  
+    A file checksummer and integrity tester 
     Copyright (C) 2014 Dennis Katsonis
 
     This program is free software: you can redistribute it and/or modify
@@ -55,7 +55,9 @@ const char* errorMessage(int error)
     "Could not remove hidden checksum file.",
     "No extended attribute to export.",
     "Can not overwrite existing checksum.",
-    "Could not write to file."};
+    "Could not write to file.",
+    "Filename too long."
+  };
   return _error[error];
 }
 
@@ -65,14 +67,16 @@ char* hiddenCRCFile(const char *file)
   char *base_filename;
   char *dir_filename;
   char *_filename;
+   
   _filename = strdup(file);
+  
   base_filename = basename(_filename);
-  dir_filename = dirname(_filename);
+  dir_filename = dirname(_filename);  
   sprintf(crc_file, "%s//.%s.crc64", dir_filename, base_filename);
 
   free(_filename); /* It seems basename() and dirname() refer to this string,
-                    * so we cannot free it until we are done with the strings
-                    * it provides. */
+		    * so we cannot free it until we are done with the strings
+		    * it provides. */
   return(crc_file);
 }
 
@@ -88,13 +92,14 @@ int presentCRC64(const char *file)
   int x;
 
   x = listxattr(file,buf,LIST_XATTR_BUFFER_SIZE);
-  current_attr = buf;
+  current_attr = buf;    
   if (x != -1)
   {
   do {
     if (strcmp(current_attr, attributeName) == 0)
       return XATTR;
-    else
+
+      else
       current_attr += (strlen(current_attr) + 1);
     } while ((current_attr - buf) < x);
   }
@@ -104,9 +109,9 @@ int presentCRC64(const char *file)
     return HIDDEN_ATTR;
 
   errno = 0; /* Clear errno from any previous issue. We will be printing
-              * an error message, but it is not related to any previous error
-              * encountered (such as not finding the hidden CRC file. */
-  return 0;
+	      * an error message, but it is not related to any previous error
+	      * encountered (such as not finding the hidden CRC file. */
+  return 0;    
 }
 
 
@@ -117,28 +122,28 @@ int exportCRC(const char *filename, int flags)
 
   if (presentCRC64(filename) != XATTR)
     return ERROR_NO_XATTR; /* No extended attribute to export. */
-
+    
   if (fileExists(hiddenCRCFile(filename)) && (!(flags & OVERWRITE)))
     return ERROR_NO_OVERWRITE; /* Don't overwrite attribute unless allowed. */
 
   if ((file_handle = open(hiddenCRCFile(filename), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR)) == -1)
     return ERROR_OPEN_FILE;
-
+  
   crc64 = getCRC(filename);
   if(!crc64) /* If 0 returned (error), return with error being we couldn't read the file.
-              * perror will print more detail. */
+	      * perror will print more detail. */
     return ERROR_READ_FILE;
-
+  
   write(file_handle, &crc64, sizeof (t_crc64));
   close(file_handle);
 
   if ((removexattr(filename, attributeName)) == -1)
     return ERROR_REMOVE_XATTR;
-
+  
   //++processed;
   return 0;
 }
-
+  
 int removeCRC(const char *filename)
 { /* Removes CRC, either the xattr, hidden file, or both */
   if (presentCRC64(filename) == XATTR)
@@ -159,15 +164,15 @@ int importCRC(const char *filename, int flags)
   int file_handle;
   t_crc64 crc64;
   int ATTRFLAGS;
-
+      
   ATTRFLAGS = (flags & OVERWRITE) ? 0 : XATTR_CREATE;
-
+  
   if ((presentCRC64(filename) != HIDDEN_ATTR) && (flags & OVERWRITE))
     return ERROR_NO_OVERWRITE;
-
+  
   if ((file_handle = open(hiddenCRCFile(filename), O_RDONLY)) == -1)
     return ERROR_OPEN_FILE;
-
+  
   /*crc64 = getCRC(filename);*/
   read(file_handle, &crc64, sizeof (t_crc64));
   close(file_handle);
@@ -188,17 +193,17 @@ t_crc64 FileCRC64(const char *filename)
   int fd;
   uint64_t tot = 0;
   uint64_t temp = 0;
-
+  
   if ((fd = open(filename,O_RDONLY)) == -1)
     return ERROR_CRC_CALC; /* ERROR_CRC_CALC is defined as being 0. */
-
+  
   while (cont)
   {
     bufread = read(fd, buf, bufread);
       if (bufread == -1)
       {
-        close(fd);
-        return ERROR_CRC_CALC;
+	close(fd);
+	return ERROR_CRC_CALC;
       }
     temp =  (t_crc64) crc64(temp, buf, (unsigned int)bufread);
     tot = tot + bufread;
@@ -211,34 +216,34 @@ t_crc64 FileCRC64(const char *filename)
 }
 
 int putCRC(const char *file, int flags)
-{
+{     
   t_crc64 checksum_file;
   t_crc64 oldCRC = 0;
-  puts(file);
+
   int file_handle;
   int ATTRFLAGS;
   int fstype;
   fstype = getfsType(file);
-
+      
   ATTRFLAGS = (flags & OVERWRITE) ? 0 : XATTR_CREATE;
-
+  
   oldCRC = getCRC(file);
   checksum_file = FileCRC64(file);
   if ((checksum_file != oldCRC) && (oldCRC != 0) && (checksum_file != 0))
   {
     printf("File %s has been changed!\n", file);
   }
-
+  
   if(fstype != VFAT && fstype != UDF && fstype != NFS)
   { /* If not VFAT or UDF, attempt to store CRC in extended attribute */
     if ((setxattr(file, attributeName, (const char *)&checksum_file, sizeof(checksum_file), ATTRFLAGS)) == -1)
       return ERROR_SET_CRC;
     else
     {
-/* ++processed; */
+/* ++processed; */ 
       return 0; /* And we're done here, return to process next file */
     }
-  }
+  } 
 
   if ((file_handle = open(hiddenCRCFile(file), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR)) == -1)
     return ERROR_OPEN_FILE;
@@ -262,12 +267,12 @@ t_crc64 getCRC(const char *file)
   int attribute_format;
   t_crc64 checksum_attr;
   int file_handle;
-
+    
   attribute_format = presentCRC64(file);
-
+  
   if (!attribute_format)
     return ERROR_CRC_CALC;
-
+    
   if (attribute_format == XATTR)
   {
     if ((getxattr(file, attributeName, (char *)&checksum_attr, sizeof(t_crc64)) == -1))
@@ -297,7 +302,7 @@ int getfsType(const char *file)
 {
   int fstype;
   struct statfs sstat;
-
+  
   statfs(file, &sstat);
   switch (sstat.f_type)
     {

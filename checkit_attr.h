@@ -1,7 +1,5 @@
-#ifndef CRC64_H
-#define CRC64_H
-/*  CHECKIT
-    A file checksummer and integrity tester
+/*  CHECKIT  
+    A file checksummer and integrity tester 
     Copyright (C) 2014 Dennis Katsonis
 
     This program is free software: you can redistribute it and/or modify
@@ -17,9 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <stdint.h>
 
-static const uint64_t crc64_tab[256];
-uint64_t crc64(uint64_t crc, const unsigned char *s, uint64_t l);
-
-#endif // CRC64_H
+char getCheckitOptions(const char *file);
+int setCheckitOptions(const char *file, char checkitOptions);
+int removeCheckitOptions(const char *file);

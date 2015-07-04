@@ -1,7 +1,5 @@
-#ifndef CHECKIT_H
-#define CHECKIT_H
-/*  CHECKIT
-    A file checksummer and integrity tester
+/*  CHECKIT  
+    A file checksummer and integrity tester 
     Copyright (C) 2014 Dennis Katsonis
 
     This program is free software: you can redistribute it and/or modify
@@ -19,7 +17,7 @@
 */
 
 #define RESET_TEXT()	printf("\033[0;0m")
-#define VERSION "0.3.1"
+#define VERSION "0.3.2"
 
 enum validities
 {
@@ -39,7 +37,8 @@ enum errorTypes
     ERROR_REMOVE_HIDDEN,
     ERROR_NO_XATTR,
     ERROR_NO_OVERWRITE,
-    ERROR_WRITE_FILE
+    ERROR_WRITE_FILE,
+    ERROR_FILENAME_OVERFLOW
 };
 
 enum characterAttributes
@@ -125,5 +124,3 @@ int vfat_attr(char *file);
 int ntfs_attr(char *file);
 const char* errorMessage(int error);
 int getfsType(const char *file);
-
-#endif // CHECKIT_H

@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>808</width>
-    <height>336</height>
+    <width>804</width>
+    <height>548</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Checkit!</string>
   </property>
   <property name="unifiedTitleAndToolBarOnMac">
    <bool>false</bool>
@@ -40,7 +40,16 @@
     </item>
     <item row="2" column="0" rowspan="2" colspan="2">
      <layout class="QGridLayout" name="gridLayout_4">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>2</number>
+      </property>
+      <property name="topMargin">
+       <number>2</number>
+      </property>
+      <property name="rightMargin">
+       <number>2</number>
+      </property>
+      <property name="bottomMargin">
        <number>2</number>
       </property>
       <item row="0" column="0">
@@ -103,8 +112,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>788</width>
-         <height>139</height>
+         <width>784</width>
+         <height>366</height>
         </rect>
        </property>
        <property name="sizePolicy">
@@ -121,7 +130,17 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="QListWidget" name="listWidget"/>
+         <widget class="QListWidget" name="listWidget">
+          <property name="contextMenuPolicy">
+           <enum>Qt::DefaultContextMenu</enum>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::ExtendedSelection</enum>
+          </property>
+          <property name="uniformItemSizes">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -135,8 +154,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>808</width>
-     <height>23</height>
+     <width>804</width>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuCheckit">
@@ -147,11 +166,19 @@
     <addaction name="actionAdd_Directory_2"/>
     <addaction name="actionCheck"/>
     <addaction name="actionStore"/>
+    <addaction name="actionClear"/>
     <addaction name="separator"/>
-    <addaction name="actionAbout"/>
     <addaction name="actionQuit_2"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionManual"/>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuCheckit"/>
+   <addaction name="menuHelp"/>
   </widget>
   <action name="actionAdd_File">
    <property name="text">
@@ -208,6 +235,16 @@
     <string>Overwrite CRC</string>
    </property>
   </action>
+  <action name="actionManual">
+   <property name="text">
+    <string>Manual</string>
+   </property>
+  </action>
+  <action name="actionClear">
+   <property name="text">
+    <string>Clear</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections>
@@ -219,7 +256,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>133</x>
-     <y>198</y>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>155</x>
@@ -234,8 +271,8 @@
    <slot>addDirectory()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>265</x>
-     <y>198</y>
+     <x>264</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>429</x>
@@ -250,8 +287,8 @@
    <slot>check()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>396</x>
-     <y>198</y>
+     <x>133</x>
+     <y>81</y>
     </hint>
     <hint type="destinationlabel">
      <x>655</x>
@@ -266,28 +303,12 @@
    <slot>store()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>527</x>
-     <y>198</y>
+     <x>264</x>
+     <y>81</y>
     </hint>
     <hint type="destinationlabel">
      <x>644</x>
      <y>179</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButton_5</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>771</x>
-     <y>194</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>668</x>
-     <y>67</y>
     </hint>
    </hints>
   </connection>
@@ -298,12 +319,28 @@
    <slot>clearList()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>579</x>
-     <y>185</y>
+     <x>133</x>
+     <y>110</y>
     </hint>
     <hint type="destinationlabel">
      <x>585</x>
      <y>235</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_5</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>quit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>743</x>
+     <y>103</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>454</x>
+     <y>89</y>
     </hint>
    </hints>
   </connection>
@@ -314,5 +351,6 @@
   <slot>check()</slot>
   <slot>store()</slot>
   <slot>clearList()</slot>
+  <slot>quit()</slot>
  </slots>
 </ui>

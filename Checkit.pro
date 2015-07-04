@@ -18,17 +18,20 @@ SOURCES += main.cpp\
     vfatattr.c \
     ntfsattr.c \
     crc64.c \
-    mainwindow.cpp
+    mainwindow.cpp \
+    checkit_attr.c
 
 HEADERS  += \
     crc64.h \
     checkit.h \
     mainwindow.h \
-    fsmagic.h
+    fsmagic.h \
+    checkit_attr.h
 
 FORMS    += \
     mainwindow.ui \
-    about.ui
+    about.ui \
+    manual.ui
 
 RESOURCES += \
     graphics.qrc
