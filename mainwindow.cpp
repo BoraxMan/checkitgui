@@ -44,11 +44,11 @@ void MainWindow::addFile()
       files = fileDialog.selectedFiles();
     }
 
-  for (auto &x : files)
+  for (const auto &x : files)
     {
       checkitFileData entry;
       entry.file = x;
-      entry.status = Unchecked;
+      entry.status = checkitStatus::Unchecked;
       ui->listWidget->addItem(entry.file);
       processList.append(entry);
     }
@@ -81,14 +81,13 @@ void MainWindow::addDirectory()
 
           if (info.isFile() && (info.isHidden() == false))
             {
-              entry.status = Unchecked;
+              entry.status = checkitStatus::Unchecked;
               ui->listWidget->addItem(entry.file);
               processList.append(entry);
             }
-
-        }
-    }
-}
+        } // end of while
+    } // end of range for loop.
+} // end of addDirectory()
 
 void MainWindow::check()
 {
@@ -98,6 +97,8 @@ void MainWindow::check()
       ui->statusbar->showMessage(tr("No files to check."));
       return;
     }
+
+  ui->statusbar->showMessage("");
 
   int count = 0, failed = 0, nocrc = 0;
   QStringList failedFileList;
@@ -114,6 +115,7 @@ void MainWindow::check()
           ui->listWidget->item(count)->setForeground(Qt::darkYellow);
           text = processList[count].file;
           text += "  [NO CRC]";
+          processList[count].status = checkitStatus::NOCRC;
           ++nocrc;
           ui->listWidget->item(count)->setText(text);
         } else { // Only bother calculating CRC if there is a value to
@@ -125,12 +127,14 @@ void MainWindow::check()
               ui->listWidget->item(count)->setForeground(Qt::green);
               text = processList[count].file;
               text += "  [PASSED]";
+              processList[count].status = checkitStatus::OK;
               ui->listWidget->item(count)->setText(text);
-            } else  if (result != 0 && result != fileCRC) {
+            } else if (result != 0 && result != fileCRC) {
               ++failed;
               ui->listWidget->item(count)->setForeground(Qt::red);
               text = processList[count].file;
               text += "  [FAILED]";
+              processList[count].status = checkitStatus::Failed;
               ui->listWidget->item(count)->setText(text);
               failedFileList << i.file;
             }
@@ -139,8 +143,8 @@ void MainWindow::check()
       ++count;
       ui->progressBar->setValue(count);
 
-      QApplication::processEvents();
 
+      QApplication::processEvents();
     }
 
   QString statusMessage;
@@ -155,6 +159,7 @@ void MainWindow::check()
       statusMessage += QString::number(nocrc) + " file(s) with no CRC's stored. ";
     }
   ui->statusbar->showMessage(statusMessage);
+
 }
 
 void MainWindow::clearList()
@@ -166,7 +171,6 @@ void MainWindow::clearList()
 
 void MainWindow::store()
 {
-
   if (processList.size() == 0)
     {
       ui->statusbar->showMessage(tr("No files to store CRC."));
@@ -177,22 +181,22 @@ void MainWindow::store()
   int flags = 0, count = 0;
 
   ui->statusbar->showMessage("");
-  checkitFileData d;
-
-  if (ui->overwriteCheckbox->isChecked())
-    {
-      flags |= OVERWRITE;
-    }
 
   for (const auto &i : processList)
     {
       char checkitOpts = getCheckitOptions(i.file.toStdString().c_str());
 
-      if (checkitOpts & STATIC) {
-          flags =  flags  & ~OVERWRITE; // disallow overwrite in this case.
-        } else if (checkitOpts & UPDATEABLE) {
-          flags |= OVERWRITE;
-        } // This will overwrite the checkbox in the GUI.
+      if ((checkitOpts & STATIC || (!checkitOpts && !ui->overwriteCheckbox->isChecked()))) {
+          flags =  flags  & ~OVERWRITE; // disallow overwrite in this case it is static, or no options present AND the overwrite checkbox is not selected
+        } else if ((checkitOpts & UPDATEABLE) || (ui->overwriteCheckbox->isChecked())) {
+          flags |= OVERWRITE; // If there  are options to update OR the checkbox is checked, overwrite.
+          // Note that if the STATIC option was found earlier, this is ignored.  We want this behiaviour, as we want the checkit
+          // attribute to overwrite the checkbox.
+        } else if (checkitOpts & OPT_ERROR) {
+          flags =  flags  & ~OVERWRITE; // disallow overwrite in this case.  If error, assume the safest.  No overwrite.
+        }
+
+      // This will overrule the checkbox in the GUI.
 
       t_crc64 result = putCRC(i.file.toStdString().c_str(), flags);
 
@@ -200,11 +204,13 @@ void MainWindow::store()
           ui->listWidget->item(count)->setForeground(Qt::green);
           text = processList[count].file;
           text += "  [SAVED]";
+          processList[count].status = checkitStatus::Saved;
           ui->listWidget->item(count)->setText(text);
         } else {
           ui->listWidget->item(count)->setForeground(Qt::red);
           text = processList[count].file;
           text += "  [NOT SAVED] : " + QString(errorMessage(result));
+          processList[count].status = checkitStatus::FailedSave;
           ui->listWidget->item(count)->setText(text);
         }
       ++count;
@@ -235,10 +241,20 @@ void MainWindow::quit()
   QApplication::quit();
 }
 
+void MainWindow::displayErrorLog()
+{
+  ErrorLog errorlog;
+  errorlog.loadResults(processList);
+  errorlog.exec();
+}
+
 void MainWindow::customContextMenuRequested(const QPoint &pos)
 {
   int flags = 0;
   int error;
+
+  auto rightClickStatusError = [&] (QString message) { ui->statusbar->showMessage((message) + processList[ui->listWidget->currentRow()].file + " : " + errorMessage(error)); };
+
   if (ui->overwriteCheckbox->isChecked())
     {
       flags |= OVERWRITE;
@@ -262,43 +278,45 @@ void MainWindow::customContextMenuRequested(const QPoint &pos)
 
   QList<QListWidgetItem*> selectedItems = ui->listWidget->selectedItems();
 
-  for (auto &i : selectedItems)
-    { // Build list of row numbers selected.
+  for (const auto &i : selectedItems)
+    { // Build list of row numbers selected.  This way we know which items were selected in the ListWidget.
       selectedListIndex.push_back(ui->listWidget->row(i));
     }
 
   auto checkitFlags = getCheckitOptions(processList[ui->listWidget->currentRow()].file.toStdString().c_str());
+  // The checkbox on the context menu will only reflect the single file at the position of the mouse pointer.
+  // The change to this one file will be reflected in all others.
+  // This isn't ideal, but it works.  Maybe in the future it will show a greyed box if the checkitflags options
+  // differ between files.
+
   if (checkitFlags == UPDATEABLE) {
       allowUpdateAction->setChecked(true);
-    }
+    } // If not updatable, default is STATIC.  Leave the checkbox as it is (default is unchecked).
 
   auto x = menu->exec(position);
 
   if (x == exportAction) {
-      for (auto i : selectedListIndex)
-        {
+      for (const auto i : selectedListIndex)
+        { // Work through all selected files.
           error = exportCRC(processList[i].file.toStdString().c_str(), flags);
           if (error) {
-              ui->statusbar->showMessage(tr("Could not export CRC for ") + processList[ui->listWidget->currentRow()].file
-                  + " : " + errorMessage(error));
+              rightClickStatusError(tr("Could not export CRC for "));
             }
         }
     } else if (x == importAction) {
-      for (auto i : selectedListIndex)
+      for (const auto i : selectedListIndex)
         {
           error = importCRC(processList[i].file.toStdString().c_str(), flags);
           if (error) {
-              ui->statusbar->showMessage(tr("Could not import CRC for ") + processList[ui->listWidget->currentRow()].file
-                  + " : " + errorMessage(error));
+              rightClickStatusError(tr("Could not import CRC for "));
             }
         }
     } else if (x == removeAction) {
-      for (auto i : selectedListIndex)
+      for (const auto i : selectedListIndex)
         {
           error = removeCRC(processList[i].file.toStdString().c_str());
           if (error) {
-              ui->statusbar->showMessage(tr("Could not remove CRC for ") + processList[ui->listWidget->currentRow()].file
-                  + " : " + errorMessage(error));
+              rightClickStatusError(tr("Could not remove CRC for "));
             }
         }
     } else if (x == allowUpdateAction) {
@@ -309,14 +327,14 @@ void MainWindow::customContextMenuRequested(const QPoint &pos)
           checkitFlags = STATIC;
         } else { checkitFlags = UPDATEABLE; }
 
-      for (auto i : selectedListIndex)
+      for (const auto i : selectedListIndex)
         {
 
           error = setCheckitOptions(processList[i].file.toStdString().c_str(), checkitFlags);
 
           if (error) {
-              ui->statusbar->showMessage(tr("Could not set checkit attributefor ") + processList[ui->listWidget->currentRow()].file
-                  + " : " + errorMessage(error));
+              rightClickStatusError(tr("Could not set checkit attributefor "));
+
             }
         }
     }

@@ -8,40 +8,22 @@
 #include <QPixmap>
 #include <QDirIterator>
 #include <QTime>
+#include <QList>
 #include <QListWidgetItem>
 #include <QScopedPointer>
+#include <algorithm>
+#include "checkitgui.h"
+#include "errorlog.h"
 
 extern "C" {
 #include "checkit.h"
 #include "checkit_attr.h"
 }
 
-#define XVERSION "0.1.0"
-
-enum checkitstatus {
-  OK,
-  Failed,
-  Saved,
-  FailedSave,
-  Unchecked
-} typedef checkitStatus;
-
-/*
-enum function {
-  getcrc,
-  storecrc
-} typedef Function;*/
-
 
 namespace Ui {
   class MainWindow;
 }
-
-struct checkitFileData {
-  QString file;
-  checkitStatus status;
-};
-
 
 
 class MainWindow : public QMainWindow
@@ -67,6 +49,7 @@ private slots:
   void about();
   void help();
   void quit();
+  void displayErrorLog();
   void customContextMenuRequested ( const QPoint & pos );
 
 

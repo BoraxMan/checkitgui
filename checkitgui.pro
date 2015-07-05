@@ -8,10 +8,9 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = Checkit
+TARGET = checkitgui
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=c++0x
-
 
 SOURCES += main.cpp\
     checkit.c \
@@ -19,19 +18,26 @@ SOURCES += main.cpp\
     ntfsattr.c \
     crc64.c \
     mainwindow.cpp \
-    checkit_attr.c
+    checkit_attr.c \
+    errorlog.cpp
 
 HEADERS  += \
     crc64.h \
     checkit.h \
     mainwindow.h \
     fsmagic.h \
-    checkit_attr.h
+    checkit_attr.h \
+    errorlog.h \
+    checkitgui.h
 
 FORMS    += \
     mainwindow.ui \
     about.ui \
-    manual.ui
+    manual.ui \
+    errorlog.ui
 
 RESOURCES += \
     graphics.qrc
+
+DISTFILES += \
+    checkitgui.spec
