@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=Check It!
+Exec=checkitgui
+Comment=A graphical file integrity checksum tool
+Icon=checkitgui
+Terminal=false
+Categories=Utility;System
+StartupNotify=false
+X-Desktop-File-Install-Version=0.22

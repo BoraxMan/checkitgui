@@ -39,5 +39,18 @@ FORMS    += \
 RESOURCES += \
     graphics.qrc
 
+
 DISTFILES += \
-    checkitgui.spec
+    checkitgui.spec checkitgui graphics/checkitgui.png menu/checkitgui.desktop \
+    doc/LICENSE
+
+documentation.files = doc/README doc/LICENSE
+applications.files = menu/checkitgui.desktop
+icons.files = graphics/checkitgui.png
+
+target.path = $$PREFIX/usr/bin
+documentation.path = $$PREFIX/usr/share/checkitgui/doc
+applications.path = $$PREFIX/usr/share/applications
+icons.path = $$PREFIX/usr/share/icons/hicolor/64x64/apps
+
+INSTALLS += target documentation applications icons

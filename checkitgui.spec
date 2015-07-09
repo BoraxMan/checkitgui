@@ -20,20 +20,25 @@ This is the GUI version of checkit.
 %setup
 
 %build
-qmake-qt4 CONFIG+=release
+qmake-qt4 CONFIG+=release PREFIX=$RPM_BUILD_ROOT
 make
 strip checkitgui
 
 %install
-rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
+make install
+
+
 
 %files
+%{_bindir}/checkitgui
+/usr/share/applications/checkitgui.desktop
+/usr/share/icons/hicolor/64x64/apps/checkitgui.png
+/usr/share/checkitgui/doc/README
+/usr/share/checkitgui/doc/LICENSE
+
+
 %defattr(-,root,root,-)
-%doc README
-%{_bindir}/*
-%{_mandir}/man1/*
-/usr/share/doc/checkit/README
+
 
 %clean
 rm -rf $RPM_BUILD_ROOT

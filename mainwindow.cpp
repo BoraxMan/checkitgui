@@ -1,8 +1,26 @@
+/*
+ * This file is part of Checkitgui: A graphical file integrity checksum tool
+ * Copyright (C) 2014  Dennis Katsonis dennisk@netspace.net.au
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_about.h"
 #include "ui_manual.h"
-#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -12,11 +30,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
   connect(ui->actionQuit_2, SIGNAL(triggered()), this, SLOT(close()));
-  connect(ui->actionAdd_Directory_2, SIGNAL(triggered()), this, SLOT(addDirectory()));
-  connect(ui->actionAdd_File_2, SIGNAL(triggered()), this, SLOT(addFile()));
+  connect(ui->actionAdd_Directory_2, SIGNAL(triggered()), this, SLOT(addDirectorySlot()));
+  connect(ui->actionAdd_File_2, SIGNAL(triggered()), this, SLOT(addFileSlot()));
   connect(ui->actionCheck, SIGNAL(triggered()), this, SLOT(check()));
   connect(ui->actionStore, SIGNAL(triggered()), this, SLOT(store()));
   connect(ui->actionManual, SIGNAL(triggered()), this, SLOT(help()));
+  connect(ui->actionAbout_Qt, SIGNAL(triggered()), this, SLOT(aboutQT()));
   connect(ui->actionClear, SIGNAL(triggered()), this, SLOT(clearList()));
   ui->listWidget->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(ui->listWidget, SIGNAL(customContextMenuRequested(QPoint)), this,
@@ -24,7 +43,19 @@ MainWindow::MainWindow(QWidget *parent) :
 
   this->setAttribute(Qt::WA_QuitOnClose);
 
+  // See if there are any command line arguments.  Add this.  Recurse through directories
+  // if directories are specified.
 
+  char **c = QApplication::argv();
+  for (auto x = 1 ; x < QApplication::argc(); ++x)
+    {
+      QFileInfo fileinfo(c[x]);
+      if (fileinfo.isFile()) {
+          addFile(c[x]);
+        } else if (fileinfo.isDir()) {
+          addDirectory(QString(c[x]));
+        }
+    } // end range for.
 }
 
 MainWindow::~MainWindow()
@@ -32,7 +63,16 @@ MainWindow::~MainWindow()
   delete ui;
 }
 
-void MainWindow::addFile()
+void MainWindow::addFile(const QString filename)
+{
+  checkitFileData entry;
+  entry.file = filename;
+  entry.status = checkitStatus::Unchecked;
+  ui->listWidget->addItem(entry.file);
+  processList.append(entry);
+}
+
+void MainWindow::addFileSlot()
 {
 
   QFileDialog fileDialog(this);
@@ -46,15 +86,30 @@ void MainWindow::addFile()
 
   for (const auto &x : files)
     {
-      checkitFileData entry;
-      entry.file = x;
-      entry.status = checkitStatus::Unchecked;
-      ui->listWidget->addItem(entry.file);
-      processList.append(entry);
+      addFile(x);
     }
 }
+void MainWindow::addDirectory(const QString dir)
+{
+  QDirIterator dirIterator(dir, QDirIterator::Subdirectories);
+  while (dirIterator.hasNext())
+    {
+      checkitFileData entry;
+      QFileInfo info;
+      dirIterator.next();
+      entry.file = dirIterator.filePath();
+      info = dirIterator.fileInfo();
 
-void MainWindow::addDirectory()
+      if (info.isFile() && (info.isHidden() == false))
+        {
+          entry.status = checkitStatus::Unchecked;
+          ui->listWidget->addItem(entry.file);
+          processList.append(entry);
+        }
+    } // end of while
+}
+
+void MainWindow::addDirectorySlot()
 {
 
   QFileDialog fileDialog(this);
@@ -70,34 +125,20 @@ void MainWindow::addDirectory()
 
   for (auto &x : files)
     {
-      QDirIterator dirIterator(x, QDirIterator::Subdirectories);
-      while (dirIterator.hasNext())
-        {
-          checkitFileData entry;
-          QFileInfo info;
-          dirIterator.next();
-          entry.file = dirIterator.filePath();
-          info = dirIterator.fileInfo();
-
-          if (info.isFile() && (info.isHidden() == false))
-            {
-              entry.status = checkitStatus::Unchecked;
-              ui->listWidget->addItem(entry.file);
-              processList.append(entry);
-            }
-        } // end of while
+      addDirectory(x);
     } // end of range for loop.
 } // end of addDirectory()
 
 void MainWindow::check()
 {
+  errorlog.stale = true;
 
   if (processList.size() == 0)
     {
       ui->statusbar->showMessage(tr("No files to check."));
       return;
     }
-
+  ui->errorStatusLabel->clear();
   ui->statusbar->showMessage("");
 
   int count = 0, failed = 0, nocrc = 0;
@@ -124,7 +165,7 @@ void MainWindow::check()
 
           if (result == fileCRC) {
 
-              ui->listWidget->item(count)->setForeground(Qt::green);
+              ui->listWidget->item(count)->setForeground(Qt::darkGreen);
               text = processList[count].file;
               text += "  [PASSED]";
               processList[count].status = checkitStatus::OK;
@@ -149,14 +190,16 @@ void MainWindow::check()
 
   QString statusMessage;
   if (failed) {
+      ui->errorStatusLabel->setText(tr("Errors reported!"));
       statusMessage += QString::number(failed) + " file(s) failed. ";
     } else if (!nocrc) {
-      statusMessage += "All files have passed. ";
+      statusMessage += tr("All files have passed. ");
     } else {
-      statusMessage += QString::number(count - failed - nocrc) + " file(s) passed. ";
+      statusMessage += QString::number(count - failed - nocrc) + tr(" file(s) passed. ");
     }
   if (nocrc) {
-      statusMessage += QString::number(nocrc) + " file(s) with no CRC's stored. ";
+      ui->errorStatusLabel->setText(tr("Errors reported!"));
+      statusMessage += QString::number(nocrc) + tr(" file(s) with no CRC's stored. ");
     }
   ui->statusbar->showMessage(statusMessage);
 
@@ -167,10 +210,15 @@ void MainWindow::clearList()
   processList.clear();
   ui->listWidget->clear();
   ui->progressBar->setValue(0);
+  ui->errorStatusLabel->clear();
+  ui->statusbar->clearMessage();
 }
 
 void MainWindow::store()
 {
+  errorlog.stale = true;
+  ui->errorStatusLabel->clear();
+  int failed = 0;
   if (processList.size() == 0)
     {
       ui->statusbar->showMessage(tr("No files to store CRC."));
@@ -207,6 +255,7 @@ void MainWindow::store()
           processList[count].status = checkitStatus::Saved;
           ui->listWidget->item(count)->setText(text);
         } else {
+          ++failed;
           ui->listWidget->item(count)->setForeground(Qt::red);
           text = processList[count].file;
           text += "  [NOT SAVED] : " + QString(errorMessage(result));
@@ -215,17 +264,19 @@ void MainWindow::store()
         }
       ++count;
     }
+  if (failed)
+    {
+      ui->errorStatusLabel->setText(tr("Errors reported!"));
+    }
 }
 
 void MainWindow::about()
 {
-  //QDialog *dialog = new QDialog();
   QDialog dialog;
   Ui::Dialog aboutDialog;
   aboutDialog.setupUi(&dialog);
   aboutDialog.versionLabel->setText(XVERSION);
   dialog.exec();
-  //delete dialog;
 }
 
 void MainWindow::help()
@@ -236,6 +287,11 @@ void MainWindow::help()
   dialog.exec();
 }
 
+void MainWindow::aboutQT()
+{
+  QApplication::aboutQt();
+}
+
 void MainWindow::quit()
 {
   QApplication::quit();
@@ -243,9 +299,8 @@ void MainWindow::quit()
 
 void MainWindow::displayErrorLog()
 {
-  ErrorLog errorlog;
   errorlog.loadResults(processList);
-  errorlog.exec();
+  errorlog.show();
 }
 
 void MainWindow::customContextMenuRequested(const QPoint &pos)
@@ -254,6 +309,11 @@ void MainWindow::customContextMenuRequested(const QPoint &pos)
   int error;
 
   auto rightClickStatusError = [&] (QString message) { ui->statusbar->showMessage((message) + processList[ui->listWidget->currentRow()].file + " : " + errorMessage(error)); };
+
+  QList<QListWidgetItem*> selectedItems = ui->listWidget->selectedItems();
+
+  if (selectedItems.isEmpty())
+    return; // No menu if nothing selected.
 
   if (ui->overwriteCheckbox->isChecked())
     {
@@ -265,18 +325,18 @@ void MainWindow::customContextMenuRequested(const QPoint &pos)
   QPoint position = ui->listWidget->mapToGlobal(pos);
   QScopedPointer<QMenu> menu(new QMenu(this));
 
-  QAction *exportAction = new QAction("Export CRC", menu.data());
-  QAction *importAction = new QAction("Import CRC", menu.data());
-  QAction *removeAction = new QAction("Remove CRC", menu.data());
-  QAction *allowUpdateAction = new QAction("Allow CRC Updates", menu.data());
+  QAction *exportAction = new QAction(tr("Export CRC"), menu.data());
+  QAction *importAction = new QAction(tr("Import CRC"), menu.data());
+  QAction *removeAction = new QAction(tr("Remove CRC"), menu.data());
+  QAction *allowUpdateAction = new QAction(tr("Allow CRC Updates"), menu.data());
+  QAction *removeItemAction = new QAction(tr("Remove from list"), menu.data());
   allowUpdateAction->setCheckable(true);
 
   menu->addAction(exportAction);
   menu->addAction(importAction);
   menu->addAction(removeAction);
   menu->addAction(allowUpdateAction);
-
-  QList<QListWidgetItem*> selectedItems = ui->listWidget->selectedItems();
+  menu->addAction(removeItemAction);
 
   for (const auto &i : selectedItems)
     { // Build list of row numbers selected.  This way we know which items were selected in the ListWidget.
@@ -325,17 +385,20 @@ void MainWindow::customContextMenuRequested(const QPoint &pos)
       if (checkitFlags == UPDATEABLE)
         {
           checkitFlags = STATIC;
-        } else { checkitFlags = UPDATEABLE; }
+        } else if (checkitFlags == STATIC) { checkitFlags = UPDATEABLE; }
 
       for (const auto i : selectedListIndex)
         {
-
           error = setCheckitOptions(processList[i].file.toStdString().c_str(), checkitFlags);
-
           if (error) {
-              rightClickStatusError(tr("Could not set checkit attributefor "));
-
+              rightClickStatusError(tr("Could not set checkit attribute for "));
             }
+        }
+    } else if (x == removeItemAction) {
+      for (const auto i : selectedListIndex)
+        {
+          ui->listWidget->takeItem(i);
+          processList.remove(i);
         }
     }
 }
