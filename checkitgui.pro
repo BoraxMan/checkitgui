@@ -41,7 +41,7 @@ RESOURCES += \
 
 
 DISTFILES += \
-    checkitgui.spec checkitgui graphics/checkitgui.png menu/checkitgui.desktop \
+    checkitgui.spec graphics/checkitgui.png menu/checkitgui.desktop \
     doc/LICENSE
 
 documentation.files = doc/README doc/LICENSE
