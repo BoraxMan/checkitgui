@@ -1,4 +1,4 @@
-/*
+/*r
  * This file is part of Checkitgui: A graphical file integrity checksum tool
  * Copyright (C) 2014  Dennis Katsonis dennisk@netspace.net.au
  *
@@ -24,7 +24,7 @@
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
-  ui(new Ui::MainWindow), rows(0)
+  ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
 
@@ -141,7 +141,7 @@ void MainWindow::check()
   ui->errorStatusLabel->clear();
   ui->statusbar->showMessage("");
 
-  int count = 0, failed = 0, nocrc = 0;
+  int count{}, failed{}, nocrc{};
   QStringList failedFileList;
   QString text;
 
@@ -218,7 +218,7 @@ void MainWindow::store()
 {
   errorlog.stale = true;
   ui->errorStatusLabel->clear();
-  int failed = 0;
+  int failed{};
   if (processList.size() == 0)
     {
       ui->statusbar->showMessage(tr("No files to store CRC."));
@@ -226,7 +226,7 @@ void MainWindow::store()
     }
 
   QString text;
-  int flags = 0, count = 0;
+  int flags{}, count{};
 
   ui->statusbar->showMessage("");
 
@@ -305,7 +305,7 @@ void MainWindow::displayErrorLog()
 
 void MainWindow::customContextMenuRequested(const QPoint &pos)
 {
-  int flags = 0;
+  int flags{};
   int error;
 
   auto rightClickStatusError = [&] (QString message) { ui->statusbar->showMessage((message) + processList[ui->listWidget->currentRow()].file + " : " + errorMessage(error)); };
@@ -385,7 +385,7 @@ void MainWindow::customContextMenuRequested(const QPoint &pos)
       if (checkitFlags == UPDATEABLE)
         {
           checkitFlags = STATIC;
-        } else if (checkitFlags == STATIC) { checkitFlags = UPDATEABLE; }
+        } else if (checkitFlags != UPDATEABLE) { checkitFlags = UPDATEABLE; }
 
       for (const auto i : selectedListIndex)
         {

@@ -6,6 +6,6 @@ Exec=checkitgui
 Comment=A graphical file integrity checksum tool
 Icon=checkitgui
 Terminal=false
-Categories=Utility;System
+Categories=Utility
 StartupNotify=false
 X-Desktop-File-Install-Version=0.22

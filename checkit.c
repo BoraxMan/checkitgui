@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+// FIX!! Crashed checking file with 0 lenght. FIX!!!!!!!!!!!!!!!!!!!!!1
+
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>

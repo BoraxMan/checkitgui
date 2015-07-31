@@ -54,7 +54,6 @@ private:
   Ui::MainWindow *ui;
   QVector<checkitFileData> processList;
   QStringList fileList;
-  int rows;
   ErrorLog errorlog;
   void addFile(const QString filename);
   void addDirectory(const QString dir);
