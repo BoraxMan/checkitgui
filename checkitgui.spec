@@ -7,7 +7,7 @@ Group: System
 Source: http://dennisk.customer.netspace.net.au/checkit/checkitgui-0.1.0.tar.gz
 URL: http://dennisk.customer.netspace.net.au/checkit.html
 Distribution: Fedora
-Vendor: DK Soft
+Vendor: Dekay Software
 Packager: Dennis Katsonis <dennisk@netspace.net.au>
 
 %description

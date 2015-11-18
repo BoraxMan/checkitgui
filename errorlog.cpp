@@ -46,7 +46,7 @@ void ErrorLog::loadResults(const QVector<checkitFileData> &resultList)
 
   errorLogHTML.clear();
   ui->textBrowserErrorLog->clear();
-  qDebug() << errorLogHTML;
+
   errorLogHTML+=QString("<!DOCTYPE html>\n<html>\n<body>\n");
 
   for (const auto &i : resultList)

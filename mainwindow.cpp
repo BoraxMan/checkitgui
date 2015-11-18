@@ -46,14 +46,14 @@ MainWindow::MainWindow(QWidget *parent) :
   // See if there are any command line arguments.  Add this.  Recurse through directories
   // if directories are specified.
 
-  char **c = QApplication::argv();
-  for (auto x = 1 ; x < QApplication::argc(); ++x)
+  char **commandArgs = QApplication::argv();
+  for (auto argNumber = 1 ; argNumber < QApplication::argc(); ++argNumber)
     {
-      QFileInfo fileinfo(c[x]);
+      QFileInfo fileinfo(commandArgs[argNumber]);
       if (fileinfo.isFile()) {
-          addFile(c[x]);
+          addFile(commandArgs[argNumber]);
         } else if (fileinfo.isDir()) {
-          addDirectory(QString(c[x]));
+          addDirectory(QString(commandArgs[argNumber]));
         }
     } // end range for.
 }
@@ -84,9 +84,9 @@ void MainWindow::addFileSlot()
       files = fileDialog.selectedFiles();
     }
 
-  for (const auto &x : files)
+  for (const auto &file : files)
     {
-      addFile(x);
+      addFile(file);
     }
 }
 void MainWindow::addDirectory(const QString dir)
