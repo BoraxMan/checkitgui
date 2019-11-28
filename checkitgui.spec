@@ -31,13 +31,25 @@ make install
 
 %files
 %{_bindir}/checkitgui
-/usr/share/applications/checkitgui.desktop
-/usr/share/icons/hicolor/64x64/apps/checkitgui.png
-/usr/share/checkitgui/doc/README
-/usr/share/checkitgui/doc/LICENSE
+%{_datadir}/applications/*
+%{_docdir}/*
+%{_datadir}/icons/hicolor/64x64/apps/*
+%{_bindir}/checkitgui
 
 
 %defattr(-,root,root,-)
+
+%post
+/bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
+
+%postun
+if [ $1 -eq 0 ] ; then
+    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null
+    /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+fi
+
+%posttrans
+/usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
 
 %clean

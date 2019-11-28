@@ -22,7 +22,7 @@
 
 #include <QString>
 
-#define XVERSION "0.1.0"
+#define XVERSION "0.1.1"
 
 enum class checkitStatus {
   OK,

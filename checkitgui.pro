@@ -49,7 +49,7 @@ applications.files = menu/checkitgui.desktop
 icons.files = graphics/checkitgui.png
 
 target.path = $$PREFIX/usr/bin
-documentation.path = $$PREFIX/usr/share/checkitgui/doc
+documentation.path = $$PREFIX/usr/share/doc/checkitgui
 applications.path = $$PREFIX/usr/share/applications
 icons.path = $$PREFIX/usr/share/icons/hicolor/64x64/apps
 

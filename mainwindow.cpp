@@ -150,9 +150,9 @@ void MainWindow::check()
 
   for (const auto &i : processList)
     {
-      t_crc64 result = getCRC(i.file.toStdString().c_str());
+      fileCRC result = getCRC(i.file.toStdString().c_str());
 
-      if (!result) {
+      if (result.status == ERROR_NO_XATTR) {
           ui->listWidget->item(count)->setForeground(Qt::darkYellow);
           text = processList[count].file;
           text += "  [NO CRC]";
@@ -161,16 +161,16 @@ void MainWindow::check()
           ui->listWidget->item(count)->setText(text);
         } else { // Only bother calculating CRC if there is a value to
           // compare against.
-          t_crc64 fileCRC = FileCRC64(i.file.toStdString().c_str());
+          fileCRC fileCRC = FileCRC64(i.file.toStdString().c_str());
 
-          if (result == fileCRC) {
+          if (result.crc64 == fileCRC.crc64) {
 
               ui->listWidget->item(count)->setForeground(Qt::darkGreen);
               text = processList[count].file;
               text += "  [PASSED]";
               processList[count].status = checkitStatus::OK;
               ui->listWidget->item(count)->setText(text);
-            } else if (result != 0 && result != fileCRC) {
+            } else if (result.status == SUCCESS && result.crc64 != fileCRC.crc64) {
               ++failed;
               ui->listWidget->item(count)->setForeground(Qt::red);
               text = processList[count].file;
@@ -246,7 +246,7 @@ void MainWindow::store()
 
       // This will overrule the checkbox in the GUI.
 
-      t_crc64 result = putCRC(i.file.toStdString().c_str(), flags);
+      int result = putCRC(i.file.toStdString().c_str(), flags);
 
       if (!result) {
           ui->listWidget->item(count)->setForeground(Qt::green);
