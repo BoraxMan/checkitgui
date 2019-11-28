@@ -1,4 +1,4 @@
-#-------------------------------------------------
+    #-------------------------------------------------
 #
 # Project created by QtCreator 2014-04-05T12:57:49
 #
@@ -44,13 +44,15 @@ DISTFILES += \
     checkitgui.spec graphics/checkitgui.png menu/checkitgui.desktop \
     doc/LICENSE
 
-documentation.files = doc/README doc/LICENSE
-applications.files = menu/checkitgui.desktop
-icons.files = graphics/checkitgui.png
-
 target.path = $$PREFIX/usr/bin
 documentation.path = $$PREFIX/usr/share/doc/checkitgui
 applications.path = $$PREFIX/usr/share/applications
 icons.path = $$PREFIX/usr/share/icons/hicolor/64x64/apps
+
+documentation.files = doc/README doc/LICENSE
+applications.files = menu/checkitgui.desktop
+icons.files = graphics/checkitgui.png
+
+
 
 INSTALLS += target documentation applications icons

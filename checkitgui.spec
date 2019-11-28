@@ -1,14 +1,15 @@
 Summary: A graphical file integrity checksum tool
 Name: checkitgui
-Version: 0.1.0
+Version: 0.1.1
 Release: 1
 License: GPLv2
 Group: System
-Source: http://dennisk.customer.netspace.net.au/checkit/checkitgui-0.1.0.tar.gz
+Source: checkitgui-0.1.1.tar.gz
 URL: http://dennisk.customer.netspace.net.au/checkit.html
 Distribution: Fedora
 Vendor: Dekay Software
 Packager: Dennis Katsonis <dennisk@netspace.net.au>
+%global debug_package %{nil}
 
 %description
 Checksum adds additions data assurance capabilities to filesystems which support extended attributes.  Checkit allows you to detect any otherwise undetected data integrity issues or file changes to any file.
